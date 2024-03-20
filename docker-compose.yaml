@@ -1,0 +1,121 @@
+version: "3"
+
+networks:
+  kafka-network:
+    driver: bridge
+
+services:
+  app-producer:
+    image: node:20-slim
+    container_name: app-producer
+    restart: always
+    entrypoint: npm run dev
+    volumes:
+      - ./app-producer/:/src
+    ports:
+      - 3000:3000
+    working_dir: /src
+    networks:
+      - kafka-network
+
+  app-consumer:
+    image: node:20-slim
+    container_name: app-consumer
+    restart: always
+    entrypoint: npm run dev
+    volumes:
+      - ./app-consumer/:/src
+    ports:
+      - 4000:3000
+    working_dir: /src
+    networks:
+      - kafka-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - kafka-network
+
+  kafka1:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka1
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9096:9096"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_LISTENERS: INTERNAL://:9092,OUTSIDE://:9096
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:9092,OUTSIDE://host.docker.internal:9096
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,OUTSIDE:PLAINTEXT
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - kafka-network
+
+  kafka2:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka2
+    depends_on:
+      - zookeeper
+    ports:
+      - "9093:9093"
+      - "9097:9097"
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_LISTENERS: INTERNAL://:9093,OUTSIDE://:9097
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka2:9093,OUTSIDE://host.docker.internal:9097
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,OUTSIDE:PLAINTEXT
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - kafka-network
+
+  kafka3:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka3
+    depends_on:
+      - zookeeper
+    ports:
+      - "9094:9094"
+      - "9098:9098"
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_LISTENERS: INTERNAL://:9094,OUTSIDE://:9098
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka3:9094,OUTSIDE://host.docker.internal:9098
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,OUTSIDE:PLAINTEXT
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - kafka-network
+
+  control-center:
+    image: confluentinc/cp-enterprise-control-center:6.0.0
+    container_name: control-center
+    hostname: control-center
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+    ports:
+      - "9021:9021"
+    environment:
+      CONTROL_CENTER_BOOTSTRAP_SERVERS: 'kafka1:9092,kafka2:9093,kafka3:9094'
+      CONTROL_CENTER_REPLICATION_FACTOR: 1
+      CONTROL_CENTER_CONNECT_CLUSTER: http://kafka-connect:8083
+      PORT: 9021
+    networks:
+      - kafka-network
