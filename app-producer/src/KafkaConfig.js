@@ -1,4 +1,4 @@
-const { Kafka, Partitioners } = require("kafkajs")
+const { Kafka } = require("kafkajs")
 
 class KafkaConfig {
   constructor(groupId) {
@@ -28,34 +28,17 @@ class KafkaConfig {
     }
   }
 
-  async produce(topic, message) {
+  async publish(topic, message) {
     try {
       await this.producer.connect()
       await this.producer.send({
         topic: topic,
-        messages: [{ value: JSON.stringify(message) }]
+        messages: [{ value: JSON.stringify(message) }],
       })
     } catch (error) {
       console.error(error)
     } finally {
       await this.producer.disconnect()
-    }
-  }
-
-  async consume(topic, callback) {
-    try {
-      await this.consumer.connect()
-      await this.consumer.subscribe({ topic: topic, fromBeginning: true })
-      await this.consumer.run({
-        eachMessage: async ({ topic, partition, message }) => {
-          console.log('TOPIC >>>>>>>>', topic)
-          console.log('PARTITION >>>>', partition)
-          const value = message.value.toString()
-          callback(value)
-        },
-      })
-    } catch (error) {
-      console.error(error)
     }
   }
 }

@@ -1,13 +1,13 @@
 version: "3"
 
-networks:
-  kafka-network:
-    driver: bridge
-
 services:
   app-producer:
     image: node:20-slim
     container_name: app-producer
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
     restart: always
     entrypoint: npm run dev
     volumes:
@@ -15,12 +15,16 @@ services:
     ports:
       - 3000:3000
     working_dir: /src
-    networks:
-      - kafka-network
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"
 
   app-consumer:
     image: node:20-slim
     container_name: app-consumer
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
     restart: always
     entrypoint: npm run dev
     volumes:
@@ -28,16 +32,16 @@ services:
     ports:
       - 4000:3000
     working_dir: /src
-    networks:
-      - kafka-network
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
-    networks:
-      - kafka-network
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"
 
   kafka1:
     image: confluentinc/cp-kafka:latest
@@ -57,8 +61,8 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,OUTSIDE:PLAINTEXT
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - kafka-network
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"
 
   kafka2:
     image: confluentinc/cp-kafka:latest
@@ -78,8 +82,8 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,OUTSIDE:PLAINTEXT
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - kafka-network
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"
 
   kafka3:
     image: confluentinc/cp-kafka:latest
@@ -99,8 +103,8 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,OUTSIDE:PLAINTEXT
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - kafka-network
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"
 
   control-center:
     image: confluentinc/cp-enterprise-control-center:6.0.0
@@ -117,5 +121,5 @@ services:
       CONTROL_CENTER_REPLICATION_FACTOR: 1
       CONTROL_CENTER_CONNECT_CLUSTER: http://kafka-connect:8083
       PORT: 9021
-    networks:
-      - kafka-network
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"

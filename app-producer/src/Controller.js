@@ -7,8 +7,7 @@ class Controller {
 
   async sendMessage(req, res) {
     try {
-      await this.kafka.produce(req.body.topic, req.body.message)
-
+      await this.kafka.publish(req.body.topic, req.body.message)
       res.status(201).send(req.body)
     }
     catch(e) {
@@ -19,7 +18,6 @@ class Controller {
   async createTopic(req, res) {
     try {
       await this.kafka.createTopic(req.body.topic)
-
       res.status(201).send(req.body)
     }
     catch(e) {
